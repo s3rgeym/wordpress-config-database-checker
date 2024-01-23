@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 Example:
-    fd 'wp-config\.php' pwned | python wp-config-database-checker.py -D
+    fd 'wp-config\.php' dump | python wp-config-database-checker.py -D
 """
 import argparse
 import multiprocessing
@@ -32,7 +32,9 @@ DEFINE_DB_RE = re.compile(
 print_err = partial(print, file=sys.stderr)
 
 
-def check_connection(config_file, connection_timeout):
+def check_connection(
+    config_file, connection_timeout, use_dirname_instead_of_localhost
+):
     with open(config_file, "r") as f:
         contents = f.read()
     db_config = {
@@ -51,7 +53,7 @@ def check_connection(config_file, connection_timeout):
         hostname.lower()
         # Добавил некоторые имена
         in ["localhost", "127.0.0.1", "db", "database", "mysql"]
-        and args.use_dirname_instead_of_localhost
+        and use_dirname_instead_of_localhost
     ):
         hostname = Path(config_file).resolve().parent.name
     username = db_config.get("DB_USER", "root")
@@ -91,7 +93,7 @@ def check_connection(config_file, connection_timeout):
     )
 
 
-if __name__ == "__main__":
+def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--input", default="-", type=argparse.FileType())
     parser.add_argument(
@@ -120,7 +122,8 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    print = partial(print, file=args.output, flush=True)
+    __builtins__.old_print = print
+    __builtins__.print = partial(print, file=args.output, flush=True)
 
     with multiprocessing.Pool(args.processes) as pool:
         pool.starmap(
@@ -128,5 +131,10 @@ if __name__ == "__main__":
             zip(
                 filter(None, map(str.strip, args.input)),
                 repeat(args.connection_timeout),
+                repeat(args.use_dirname_instead_of_localhost),
             ),
         )
+
+
+if __name__ == "__main__":
+    sys.exit(main())
