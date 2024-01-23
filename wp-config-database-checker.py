@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 Example:
-    fd 'wp-config\.php' dump | python wp-config-database-checker.py -D
+    fd 'wp-config\.php' pwned | python wp-config-database-checker.py -D
 """
 import argparse
 import multiprocessing
